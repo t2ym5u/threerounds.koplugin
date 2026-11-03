@@ -1,8 +1,20 @@
 -- busted specs for the Three Rounds game logic and card banks.
-package.path = "./?.lua;" .. package.path
+package.path = "./?.lua;./common/?.lua;" .. package.path
 local Game = require("game")
 
+local SeenHistory = require("seen_history")
+
 local function bank(lang) return dofile("cards_" .. lang .. ".lua") end
+
+-- Plugin settings stand-in, kept between "sessions".
+local function fakePlugin()
+    local store = {}
+    return {
+        store = store,
+        getSetting  = function(_self, k, d) if store[k] == nil then return d end return store[k] end,
+        saveSetting = function(_self, k, v) store[k] = v end,
+    }
+end
 
 -- Deterministic rng for reproducible decks.
 local function lcg(seed)
@@ -70,16 +82,52 @@ describe("deck", function()
         local deck = Game.pickDeck(b, { history = true }, 30, nil, lcg(3))
         assert.are.equal(30, #deck)
         for _, c in ipairs(deck) do assert.are.equal("history", c.theme) end
+        local p = fakePlugin()
+        local seen = SeenHistory.open(p, "cards_fr")
+        seen:mark(deck)
         local recent = {}
         for _, c in ipairs(deck) do recent[c.text] = true end
-        local deck2 = Game.pickDeck(b, { history = true }, 30, recent, lcg(4))
+        local deck2 = Game.pickDeck(b, { history = true }, 30, seen, lcg(4))
         local reused = 0
         for _, c in ipairs(deck2) do if recent[c.text] then reused = reused + 1 end end
         -- the theme has more than 60 cards: 30 fresh ones exist, none is reused
         assert.is_true(#b.history >= 60)
         assert.are.equal(0, reused)
-        local big = Game.pickDeck(b, { history = true }, 60, recent, lcg(5))
+        local big = Game.pickDeck(b, { history = true }, 60, seen, lcg(5))
         assert.are.equal(60, #big)
+    end)
+end)
+
+describe("deck history across sessions", function()
+    it("never deals a card again until the selected themes are used up", function()
+        local b = { history = {}, food = { "Crêpe" } }
+        for i = 1, 25 do b.history[i] = "H" .. i end
+        local p = fakePlugin()
+        local got = {}
+        for session = 1, 5 do
+            local seen = SeenHistory.open(p, "cards_fr", { max = 3000 })   -- reopened each session
+            local d = Game.pickDeck(b, { history = true }, 5, seen, lcg(session))
+            assert.are.equal(5, #d)
+            for _, c in ipairs(d) do
+                assert.is_nil(got[c.text], "session " .. session .. " repeated " .. c.text)
+                got[c.text] = true
+            end
+        end
+        -- all 25 dealt: a 6th game starts a new cycle with a full deck
+        local d = Game.pickDeck(b, { history = true }, 5, SeenHistory.open(p, "cards_fr"), lcg(7))
+        assert.are.equal(5, #d)
+    end)
+
+    it("migrates the 1.0.x recent_cards list into each language once", function()
+        local p = fakePlugin()
+        local banks = { fr = { history = { "Napoléon", "Molière" } }, en = { history = { "Newton" } } }
+        Game.migrateRecent({ "Newton", "Molière", "Gone", "Napoléon" }, banks,
+            function(lang) return SeenHistory.open(p, "cards_" .. lang) end)
+        assert.are.same({ "Napoléon", "Molière" }, p.store.seen_cards_fr)
+        assert.are.same({ "Newton" }, p.store.seen_cards_en)
+        local fr = { history = { "Napoléon", "Molière", "Curie" } }
+        local d = Game.pickDeck(fr, { history = true }, 1, SeenHistory.open(p, "cards_fr"), lcg(1))
+        assert.are.equal("Curie", d[1].text)
     end)
 end)
 

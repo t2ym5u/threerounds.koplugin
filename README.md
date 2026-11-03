@@ -19,7 +19,7 @@ On a turn, one player of the active team holds the reader and makes their team g
 ## Features
 
 - 2,774 French and 2,021 English cards in 14 themes (historical figures, scientists & explorers, inventions, arts & letters, music, fictional characters, film & TV, countries & cities, monuments of the world, sports stars, myths & legends, food & dishes, famous animals — Milou, Rantanplan, Laïka, Jolly Jumper… — and an easy kids' theme left out by default), each with at least 110 cards, chosen in a multi-select **Themes** menu that shows each theme's size. Only the selected language's file is loaded (about 170 KB of Lua heap for the French deck). French cards are French-flavoured (Vercingétorix, Molière, Louis de Funès, le Mont-Saint-Michel…), English ones British/American-flavoured.
-- The last decks are remembered, so the next game deals fresh cards first.
+- Cards already dealt are remembered across games: a card comes back only once every card of the selected themes has been played.
 - Turn timer 30/45/60 s; only the digits refresh, once a second.
 - Passing configurable: rounds 2–3 (default), all rounds, never.
 - Team names typed once and remembered.

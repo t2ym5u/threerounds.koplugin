@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0] - 2026-11-03
+
+### Changed
+- Cards are remembered across games until every card of the selected themes
+  has been dealt (the whole deck, instead of the last 150 cards). The cards
+  already remembered are carried over.
+
 ## [1.0.2] - 2026-11-02
 
 ### Changed
