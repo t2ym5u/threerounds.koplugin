@@ -29,33 +29,43 @@ local function shuffle(t, rng)
 end
 
 -- Draws `size` cards from bank ({ theme = { "name", ... } }) restricted to
--- `themes` (set, nil = the default themes). Cards in `recent` (set of names) are only used
--- once the fresh ones run out, so back-to-back games don't replay a deck.
-function Game.pickDeck(bank, themes, size, recent, rng)
+-- `themes` (set, nil = the default themes). `seen` (a SeenHistory, ids =
+-- card names) remembers the cards of earlier games: a card comes back only
+-- once every card of the selected themes has been dealt. The deck is marked
+-- as seen. Without `seen`, plain random.
+function Game.pickDeck(bank, themes, size, seen, rng)
     rng = rng or math.random
-    recent = recent or {}
-    local fresh, stale = {}, {}
+    local pool = {}
     themes = themes or Game.DEFAULT_THEMES
     for _, theme in ipairs(Game.THEMES) do
         if bank[theme] and themes[theme] then
             for _, name in ipairs(bank[theme]) do
-                local card = { text = name, theme = theme }
-                if recent[name] then stale[#stale + 1] = card else fresh[#fresh + 1] = card end
+                pool[#pool + 1] = { text = name, theme = theme }
             end
         end
     end
-    shuffle(fresh, rng)
-    shuffle(stale, rng)
+    if seen then return seen:draw(pool, size, rng) end
+    shuffle(pool, rng)
     local deck = {}
-    for _, c in ipairs(fresh) do
-        if #deck >= size then break end
-        deck[#deck + 1] = c
-    end
-    for _, c in ipairs(stale) do
-        if #deck >= size then break end
-        deck[#deck + 1] = c
-    end
+    for i = 1, math.min(size, #pool) do deck[i] = pool[i] end
     return deck
+end
+
+-- The 1.0.x "recent_cards" list (newest first, languages mixed) into the
+-- per-language histories: banks = { fr = bank, en = bank }, seenFor(lang)
+-- -> SeenHistory. Marked oldest first, so the history keeps their order.
+function Game.migrateRecent(list, banks, seenFor)
+    for lang, bank in pairs(banks) do
+        local in_bank = {}
+        for _, names in pairs(bank) do
+            for _, n in ipairs(names) do in_bank[n] = true end
+        end
+        local items = {}
+        for i = #list, 1, -1 do
+            if in_bank[list[i]] then items[#items + 1] = list[i] end
+        end
+        if #items > 0 then seenFor(lang):mark(items) end
+    end
 end
 
 -- opts: teams (list of names), pass_rule, rng

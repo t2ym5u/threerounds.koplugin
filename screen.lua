@@ -33,6 +33,7 @@ end
 
 local MenuHelper = require("menu_helper")
 local ScreenBase = require("screen_base")
+local SeenHistory = require("seen_history")
 local Game       = lrequire("game")
 local W          = lrequire("widgets")
 
@@ -40,7 +41,8 @@ local DeviceScreen = Device.screen
 
 local DECK_SIZES   = { 30, 40, 60 }
 local TURN_TIMES   = { 30, 45, 60 }
-local MAX_RECENT   = 150
+-- Cards remembered across games, per language (the whole bank: ~2800 FR).
+local SEEN_MAX     = 3000
 
 local GAME_RULES_EN = [[
 Three Rounds — Rules
@@ -127,6 +129,7 @@ function ThreeRoundsScreen:init()
     self.deck_size = plugin:getSetting("deck_size", 40)
     self.themes    = self:_loadThemes()
     self.bank      = loadBank(self.lang)
+    self:_migrateRecent()
     self.game = Game.new{ teams = self:_teamNames(plugin:getSetting("nb_teams", 2)),
                           pass_rule = plugin:getSetting("pass_rule", "r23") }
     self.game:load(plugin:loadState())
@@ -146,6 +149,25 @@ function ThreeRoundsScreen:_loadThemes()
     local set = {}
     for _i, t in ipairs(saved) do set[t] = true end
     return set
+end
+
+-- The cards dealt, remembered in the settings ("seen_cards_<lang>"): a card
+-- comes back only once every card of the selected themes has been played.
+function ThreeRoundsScreen:_seen(lang)
+    return SeenHistory.open(self.plugin, "cards_" .. (lang or self.lang), { max = SEEN_MAX })
+end
+
+-- Up to 1.0.x the last 150 dealt cards were kept under "recent_cards"
+-- (newest first, both languages mixed): move them into each language's
+-- history once, then drop the old setting.
+function ThreeRoundsScreen:_migrateRecent()
+    local old = self.plugin:getSetting("recent_cards", nil)
+    if old == nil then return end
+    if type(old) == "table" then
+        Game.migrateRecent(old, { fr = loadBank("fr"), en = loadBank("en") },
+            function(lang) return self:_seen(lang) end)
+    end
+    self.plugin:saveSetting("recent_cards", nil)
 end
 
 function ThreeRoundsScreen:serializeState()
@@ -202,21 +224,12 @@ end
 -- ---------------------------------------------------------------------------
 
 function ThreeRoundsScreen:onStartGame()
-    local recent = {}
-    for _i, name in ipairs(self.plugin:getSetting("recent_cards", {})) do recent[name] = true end
-    local deck = Game.pickDeck(self.bank, self.themes, self.deck_size, recent)
+    -- Marks the deck as seen, so the next games start with other cards.
+    local deck = Game.pickDeck(self.bank, self.themes, self.deck_size, self:_seen())
     if #deck == 0 then
         self:showMessage(_("No cards for these themes."))
         return
     end
-    -- Remember this deck so the next game starts with other cards.
-    local list = {}
-    for _i, c in ipairs(deck) do list[#list + 1] = c.text end
-    for _i, name in ipairs(self.plugin:getSetting("recent_cards", {})) do
-        if #list >= MAX_RECENT then break end
-        list[#list + 1] = name
-    end
-    self.plugin:saveSetting("recent_cards", list)
     self.game:startGame(deck)
     self:_save()
     self:_redraw()
