@@ -76,10 +76,6 @@ Quand le chrono sonne, un écran de passage s'affiche : donnez la liseuse au jou
 Réglages : équipes et leurs noms, nombre de cartes (30, 40 ou 60), durée d'un tour, quand on peut passer, thèmes des cartes.
 ]]
 
-local function defaultLang()
-    return _.lang() == "fr" and "fr" or "en"
-end
-
 local function loadBank(lang)
     local chunk = loadfile(_dir .. "cards_" .. lang .. ".lua")
     local ok, data = pcall(chunk or error)
@@ -124,7 +120,7 @@ local ThreeRoundsScreen = ScreenBase:extend{}
 
 function ThreeRoundsScreen:init()
     local plugin = self.plugin
-    self.lang      = plugin:getSetting("lang", defaultLang())
+    self.lang      = plugin:getLang({ "fr", "en" })
     self.duration  = plugin:getSetting("duration", 45)
     self.deck_size = plugin:getSetting("deck_size", 40)
     self.themes    = self:_loadThemes()
@@ -302,7 +298,7 @@ function ThreeRoundsScreen:openLangMenu()
         { { id = "fr", text = "Français" }, { id = "en", text = "English" } }, self.lang,
         function(lang)
             self.lang = lang
-            self.plugin:saveSetting("lang", lang)
+            self.plugin:setLang(lang)
             self.bank = loadBank(lang)
         end)
 end
