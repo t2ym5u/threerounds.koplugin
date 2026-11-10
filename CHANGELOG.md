@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0] - 2026-11-10
+
+### Added
+- More than twice as many French cards: 6,347 (was 2,774), with every
+  theme at least doubled except history (331, was 176). The game
+  remembers the last 7,000 cards it dealt (was 3,000), so it goes through
+  the whole bank before repeating one.
+
 ## [1.1.3] - 2026-11-09
 
 ### Fixed

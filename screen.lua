@@ -41,8 +41,8 @@ local DeviceScreen = Device.screen
 
 local DECK_SIZES   = { 30, 40, 60 }
 local TURN_TIMES   = { 30, 45, 60 }
--- Cards remembered across games, per language (the whole bank: ~2800 FR).
-local SEEN_MAX     = 3000
+-- Cards remembered across games, per language (the whole bank: ~6300 FR).
+local SEEN_MAX     = 7000
 
 local GAME_RULES_EN = [[
 Three Rounds — Rules

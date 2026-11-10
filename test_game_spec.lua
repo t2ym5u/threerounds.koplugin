@@ -105,7 +105,7 @@ describe("deck history across sessions", function()
         local p = fakePlugin()
         local got = {}
         for session = 1, 5 do
-            local seen = SeenHistory.open(p, "cards_fr", { max = 3000 })   -- reopened each session
+            local seen = SeenHistory.open(p, "cards_fr", { max = 7000 })   -- reopened each session (screen.lua SEEN_MAX)
             local d = Game.pickDeck(b, { history = true }, 5, seen, lcg(session))
             assert.are.equal(5, #d)
             for _, c in ipairs(d) do
