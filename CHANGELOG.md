@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2026-11-12
+
+### Changed
+- Picks up game-common 1.16.0: games for two readers (new Two readers
+  category) and the shared Start / Join dialog.
+
 ## [1.2.0] - 2026-11-10
 
 ### Added
