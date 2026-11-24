@@ -186,7 +186,7 @@ end
 function ThreeRoundsScreen:_startCountdown()
     self._tick_gen = (self._tick_gen or 0) + 1
     local gen = self._tick_gen
-    UIManager:scheduleIn(1, function() self:_onTick(gen) end)
+    self:schedule(1, function() self:_onTick(gen) end)
 end
 
 function ThreeRoundsScreen:_stopCountdown()
@@ -212,7 +212,7 @@ function ThreeRoundsScreen:_onTick(gen)
             return "fast", self.timer_frame and self.timer_frame.dimen or self.dimen
         end)
     end
-    UIManager:scheduleIn(1, function() self:_onTick(gen) end)
+    self:schedule(1, function() self:_onTick(gen) end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -271,6 +271,7 @@ function ThreeRoundsScreen:onNextRound()
 end
 
 function ThreeRoundsScreen:onNewGame()
+    self:cancelScheduled()
     self:_stopCountdown()
     local names = {}
     for i, t in ipairs(self.game.teams) do names[i] = t.name end
